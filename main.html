@@ -34,46 +34,58 @@
     const cname = document.getElementById('cname').value;
     const date = document.getElementById('date').value;
 
-    const content = `First Name: ${fname}\nLast Name: ${lname}\nCollege: ${cname}\nDate: ${date}\nSubmitted: ${new Date().toISOString()}\n\n`;
+    const newEntry = `First Name: ${fname}\nLast Name: ${lname}\nCollege: ${cname}\nDate: ${date}\nSubmitted: ${new Date().toISOString()}\n\n`;
 
-    const repo = 'Gowthamprasanna2002/HTML-project'; // 🔁 Change this
-    const filePath = 'data.txt'; // file inside the repo
-    const token = 'YOUR_GITHUB_TOKEN'; // 🔁 Change this
+    const username = 'Gowthamprasanna2002';
+    const repo = 'HTML-project';
+    const path = 'data.txt';
+    const token = 'ghp_yourActualTokenHere'; // 🔁 Replace this with your real token
 
-    const getUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+    const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
 
-    const getResponse = await fetch(getUrl, {
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github.v3+json'
+    try {
+      // Step 1: Get current content & SHA
+      const res = await fetch(apiUrl, {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      });
+
+      const file = await res.json();
+      const oldContent = file.content ? atob(file.content) : '';
+      const sha = file.sha;
+
+      // Step 2: Append new content
+      const updatedContent = oldContent + newEntry;
+      const base64Content = btoa(unescape(encodeURIComponent(updatedContent)));
+
+      // Step 3: Push updated file
+      const updateRes = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          message: `New form submission: ${fname} ${lname}`,
+          content: base64Content,
+          sha: sha
+        })
+      });
+
+      if (updateRes.ok) {
+        alert('✅ Submission successful! Data saved to GitHub.');
+        form.reset();
+      } else {
+        const error = await updateRes.json();
+        console.error('❌ Update error:', error);
+        alert('Failed to update file. Check console.');
       }
-    });
 
-    const fileData = await getResponse.json();
-    const oldContent = fileData.content ? atob(fileData.content) : '';
-    const sha = fileData.sha;
-
-    const newContent = oldContent + content;
-    const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
-
-    const response = await fetch(getUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github.v3+json'
-      },
-      body: JSON.stringify({
-        message: `Form submission by ${fname}`,
-        content: encodedContent,
-        sha: sha // required to update
-      })
-    });
-
-    if (response.ok) {
-      alert('✅ Submitted and saved to GitHub!');
-    } else {
-      alert('❌ Error submitting. Check console.');
-      console.error(await response.json());
+    } catch (err) {
+      console.error('❌ Request error:', err);
+      alert('Something went wrong. Check console.');
     }
   });
 </script>
