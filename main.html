@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Submission Form</title>
+</head>
+<body>
+
+<h2>Submission Form</h2>
+<form id="submissionForm">
+  <label>First Name:</label><br>
+  <input type="text" id="fname" required><br><br>
+
+  <label>Last Name:</label><br>
+  <input type="text" id="lname" required><br><br>
+
+  <label>College Name:</label><br>
+  <input type="text" id="cname" required><br><br>
+
+  <label>Date:</label><br>
+  <input type="date" id="date" required><br><br>
+
+  <button type="submit">Submit</button>
+</form>
+
+<script>
+  const form = document.getElementById('submissionForm');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const fname = document.getElementById('fname').value;
+    const lname = document.getElementById('lname').value;
+    const cname = document.getElementById('cname').value;
+    const date = document.getElementById('date').value;
+
+    const content = `First Name: ${fname}\nLast Name: ${lname}\nCollege: ${cname}\nDate: ${date}\nSubmitted: ${new Date().toISOString()}\n\n`;
+
+    const repo = 'HTML-project'; // 🔁 Change this
+    const filePath = 'submissions/data.txt'; // file inside the repo
+    const token = 'YOUR_GITHUB_TOKEN'; // 🔁 Change this
+
+    const getUrl = `https://api.github.com/repos/${repo}/contents/${filePath}`;
+
+    const getResponse = await fetch(getUrl, {
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json'
+      }
+    });
+
+    const fileData = await getResponse.json();
+    const oldContent = fileData.content ? atob(fileData.content) : '';
+    const sha = fileData.sha;
+
+    const newContent = oldContent + content;
+    const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
+
+    const response = await fetch(getUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json'
+      },
+      body: JSON.stringify({
+        message: `Form submission by ${fname}`,
+        content: encodedContent,
+        sha: sha // required to update
+      })
+    });
+
+    if (response.ok) {
+      alert('✅ Submitted and saved to GitHub!');
+    } else {
+      alert('❌ Error submitting. Check console.');
+      console.error(await response.json());
+    }
+  });
+</script>
+
+</body>
+</html>
